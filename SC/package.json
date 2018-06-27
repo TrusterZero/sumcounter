@@ -1,0 +1,31 @@
+{
+  "name": "sumcounter",
+  "version": "1.0.0",
+  "description": "Server for the league of legends addon. This addon enables enhanced communication between teammembers by providing a platform where they can share summoner spells used by the enemy",
+  "main": "server.js",
+  "scripts": {
+    "start": "npm run build",
+    "build": "webpack --mode=development && webpack-dev-server --content-base src/ --inline --hot",
+    "build:prod": "webpack -p && copy src/index.html dist/index.html"
+  },
+  "author": "Jurmen Hughes",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.3",
+    "react": "^16.3.2",
+    "react-center": "^1.1.1",
+    "react-dom": "^16.3.2",
+    "request": "^2.85.0",
+    "socketio": "^1.0.0"
+  },
+  "devDependencies": {
+    "babel-loader": "^7.1.4",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "nodemon": "^1.17.3",
+    "webpack": "^4.8.1",
+    "webpack-cli": "^2.1.4",
+    "webpack-dev-server": "^3.1.4"
+  }
+}
