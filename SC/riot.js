@@ -58,15 +58,17 @@ getChampion = (key) => {
 }
 
 binarySearch = (key, array) => {
-  halfSize = Math.floor(array.length / 2)
-  console.log(halfSize)
+  mid = Math.floor(array.length / 2)
+  midObject = array[mid]
+  midKey = midObject.key
+
   switch (true) {
-    case array[halfSize].key == key:
-      return array[halfSize];
-    case key < array[halfSize].key:
-      return binarySearch(key, array.slice(0, halfSize))
-    case key > array[halfSize].key:
-      return binarySearch(key, array.slice(halfSize, array.length))
+    case midKey == key:
+      return midObject;
+    case key < midkey:
+      return binarySearch(key, array.slice(0, mid))
+    case key > midkey:
+      return binarySearch(key, array.slice(mid, array.length))
   }
 }
 
@@ -98,4 +100,4 @@ let getMatch = ex.getMatch = (userName) => {
     })
   })
 }
-console.log(getChampion(17))
+console.log(getChampion(43))
