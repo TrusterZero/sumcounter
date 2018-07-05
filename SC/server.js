@@ -9,9 +9,9 @@ const server = app.listen(port, ()=>{
 })
 
 app.use(express.static("public")) // will contain the userinterface
-//Socket setup
+// Socket setup
 var io = socket(server);
-
+ 
 io.on("connection", (socket)=>{
   
   socket.on("sumTell",(data)=>{
@@ -21,6 +21,7 @@ io.on("connection", (socket)=>{
   socket.on("startMatch",(data)=>{
     console.log(data.summonerName)
     riot.getMatch(data.summonerName).then((match) => {
+      console.log(match)
       socket.emit("match", match);
       socket.join(match.gameId);
     })
