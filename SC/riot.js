@@ -1,6 +1,16 @@
 const request = require("request");
+const fs = require("fs")
 const apiKey = "RGAPI-95a841eb-8e0a-4df6-bfb6-4a10b2e5f35c";
 let ex = module.exports;
+
+
+class Champion {
+  constructor(key, name, image) {
+    this.key = key
+    this.name = name
+    this.image = image
+  }
+}
 
 headers = {
   "Origin": "https://developer.riotgames.com",
@@ -22,19 +32,44 @@ let getUser = ex.getUser = (userName) => {
 }
 
 updateChampions = ex.updateChampions = () => {
-  request.get("http://ddragon.leagueoflegends.com/cdn/6.24.1/data/en_US/champion.json", (err,res) => {
-  newChampions = JSON.parse(res["body"])
+  request.get("http://ddragon.leagueoflegends.com/cdn/6.24.1/data/en_US/champion.json", (err, res) => {
+    newChampions = JSON.parse(res["body"])
 
-  localChamps = {}
+    localChamps = []
 
-    for(champion in newChampions["data"]){
-      localChamps[newChampions["data"][champion].key].name = newChampions["data"][champion].name
-      localChamps[newChampions["data"][champion].key].image = newChampions["data"][champion].image.full
-
+    for (championName in newChampions["data"]) {
+      champion = newChampions["data"][championName]
+      localChamps.push(new Champion(champion.key, champion.name, champion.image.full))
     }
-    console.log(localChamps)
+    localChamps.sort((a, b) => {
+      return a.key - b.key
+    })
+    fs.writeFile("./champions.json", JSON.stringify(localChamps), (err) => {
+      if (err) {
+        console.log(err)
+      }
+    });
   })
 }
+
+getChampion = (key) => {
+  champions = JSON.parse(fs.readFileSync("./champions.json"))
+  return binarySearch(key, champions)
+}
+
+binarySearch = (key, array) => {
+  halfSize = Math.floor(array.length / 2)
+  console.log(halfSize)
+  switch (true) {
+    case array[halfSize].key == key:
+      return array[halfSize];
+    case key < array[halfSize].key:
+      return binarySearch(key, array.slice(0, halfSize))
+    case key > array[halfSize].key:
+      return binarySearch(key, array.slice(halfSize, array.length))
+  }
+}
+
 
 let getMatch = ex.getMatch = (userName) => {
   return new Promise((resolve, reject) => {
@@ -56,11 +91,11 @@ let getMatch = ex.getMatch = (userName) => {
         match.participants.array.forEach(participant => {
           //participant.champion = getChampion(participant.championId)
         });
- 
+
 
         resolve(match)
       })
     })
   })
 }
-updateChampions()
+console.log(getChampion(17))
