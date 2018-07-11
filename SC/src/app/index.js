@@ -12,8 +12,8 @@ class App extends React.Component {
     
     super(props);
     this.state = {
-      //summonerName : localStorage.getItem("summonerName")
-      summonerName : "DaWhiteHammer"
+      summonerName : localStorage.getItem("summonerName")
+      //summonerName : "DaWhiteHammer"
     }
   }
 

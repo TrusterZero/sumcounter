@@ -1,8 +1,7 @@
 const request = require("request");
 const fs = require("fs")
-const apiKey = "RGAPI-95a841eb-8e0a-4df6-bfb6-4a10b2e5f35c";
+const apiKey = "RGAPI-dafc06f0-d3c3-4c35-81ae-ebfeb9ce6e08";
 let ex = module.exports;
-
 
 class Champion {
   constructor(key, name, image) {
@@ -32,7 +31,10 @@ let getUser = ex.getUser = (userName) => {
 }
 
 updateChampions = ex.updateChampions = () => {
-  request.get("http://ddragon.leagueoflegends.com/cdn/6.24.1/data/en_US/champion.json", (err, res) => {
+  request.get({
+              url:"http://ddragon.leagueoflegends.com/cdn/6.24.1/data/en_US/champion.json",
+              headers: headers
+            }, (err, res) => {
     newChampions = JSON.parse(res["body"])
 
     localChamps = []
@@ -44,11 +46,16 @@ updateChampions = ex.updateChampions = () => {
     localChamps.sort((a, b) => {
       return a.key - b.key
     })
-    fs.writeFile("./champions.json", JSON.stringify(localChamps), (err) => {
-      if (err) {
-        console.log(err)
+    fs.stat("./champions.json", (error, stats) => {
+      //TODO: stats birthdate is x aantal dagen geleden dan update en anders return false
+      if (true) {
+        fs.writeFile("./champions.json", JSON.stringify(localChamps), (err) => {
+          if (err) {
+            console.log(err)
+          }
+        })
       }
-    });
+    })
   })
 }
 
@@ -58,46 +65,43 @@ getChampion = (key) => {
 }
 
 binarySearch = (key, array) => {
-  mid = Math.floor(array.length / 2)
-  midObject = array[mid]
-  midKey = midObject.key
-
+  let mid = Math.floor(array.length / 2)
+  let midObject = array[mid]
+  let midKey = midObject.key
+  
   switch (true) {
     case midKey == key:
       return midObject;
-    case key < midkey:
+    case key < midKey:
       return binarySearch(key, array.slice(0, mid))
-    case key > midkey:
+    case key > midKey:
       return binarySearch(key, array.slice(mid, array.length))
+    default:
+      updateChampions() //TODO: check wanneer champions.json voor het laatst geupdate is 
+      // al is dat minder dan een dag geleden throw error
+      getChampion(key)
   }
 }
 
-
 let getMatch = ex.getMatch = (userName) => {
   return new Promise((resolve, reject) => {
-    //liever meerdere keren loopen door hetzelfde object
-    //of meer reqs uitvoeren
-    //andere optie is om een eigen geordende data set te creeren 
-    //daar doorheen zoeken met de binary search methode
-    //die met een Cronjob te laten vernieuwen
-
-
     getUser(userName).then((user) => {
       request.get({
         url: `https://euw1.api.riotgames.com/lol/spectator/v3/active-games/by-summoner/${user.id}`,
         headers: headers
       }, (err, res, body) => {
         let match = JSON.parse(body)
-
-        let champions = JSON.parse(body.data)
-        match.participants.array.forEach(participant => {
-          //participant.champion = getChampion(participant.championId)
-        });
-
-
+        for(p in match.participants) {
+          match.participants[p].champion = getChampion(match.participants[p].championId)
+          //match.participants[p].sum1 = getSum(match.participants[p].spell1Id)
+          //match.participants[p].sum2 = getSum(match.participants[p].spell2Id)
+        };
+        console.log(match)
         resolve(match)
       })
     })
   })
 }
-console.log(getChampion(43))
+getMatch("TrrrZero").then((match)=>{
+  console.log(match)
+})
