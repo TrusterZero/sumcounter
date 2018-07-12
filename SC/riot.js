@@ -1,6 +1,6 @@
 const request = require("request");
 const fs = require("fs")
-const apiKey = "RGAPI-dafc06f0-d3c3-4c35-81ae-ebfeb9ce6e08";
+const apiKey = "RGAPI-f4d015ea-2728-43b2-8a80-c69e0c8f0d93";
 let ex = module.exports;
 
 class Champion {
@@ -30,6 +30,7 @@ let getUser = ex.getUser = (userName) => {
   })
 }
 
+//Gets the latest championlist and saves is it ./champions.json
 updateChampions = ex.updateChampions = () => {
   request.get({
               url:"http://ddragon.leagueoflegends.com/cdn/6.24.1/data/en_US/champion.json",
@@ -43,6 +44,7 @@ updateChampions = ex.updateChampions = () => {
       champion = newChampions["data"][championName]
       localChamps.push(new Champion(champion.key, champion.name, champion.image.full))
     }
+    //sorteren voor de binary search
     localChamps.sort((a, b) => {
       return a.key - b.key
     })
@@ -59,12 +61,12 @@ updateChampions = ex.updateChampions = () => {
   })
 }
 
-getChampion = (key) => {
-  champions = JSON.parse(fs.readFileSync("./champions.json"))
-  return binarySearch(key, champions)
+getLocalData = (type,key) => {
+  array = JSON.parse(fs.readFileSync(type = "champion" ? "./champions.json": type = "spell" ? "./spells.json": ()=>{throw Error}))  
+  return binarySearch(type, key, array)
 }
 
-binarySearch = (key, array) => {
+binarySearch = (type, key, array) => {
   let mid = Math.floor(array.length / 2)
   let midObject = array[mid]
   let midKey = midObject.key
@@ -73,15 +75,16 @@ binarySearch = (key, array) => {
     case midKey == key:
       return midObject;
     case key < midKey:
-      return binarySearch(key, array.slice(0, mid))
+      return binarySearch(type, key, array.slice(0, mid))
     case key > midKey:
-      return binarySearch(key, array.slice(mid, array.length))
+      return binarySearch(type, key, array.slice(mid, array.length))
     default:
       updateChampions() //TODO: check wanneer champions.json voor het laatst geupdate is 
       // al is dat minder dan een dag geleden throw error
-      getChampion(key)
+      getLocalData(type,key)
   }
 }
+
 
 let getMatch = ex.getMatch = (userName) => {
   return new Promise((resolve, reject) => {
@@ -92,16 +95,16 @@ let getMatch = ex.getMatch = (userName) => {
       }, (err, res, body) => {
         let match = JSON.parse(body)
         for(p in match.participants) {
-          match.participants[p].champion = getChampion(match.participants[p].championId)
-          //match.participants[p].sum1 = getSum(match.participants[p].spell1Id)
-          //match.participants[p].sum2 = getSum(match.participants[p].spell2Id)
+          match.participants[p].champion = getLocalData("champion",match.participants[p].championId)
+          //match.participants[p].CDR = hasCDR(user.id)
+          //match.participants[p].sum1 = getLocalData("spell",match.participants[p].spell1Id)
+          //match.participants[p].sum2 = getLocalData("spell",match.participants[p].spell2Id)
         };
-        console.log(match)
         resolve(match)
       })
     })
   })
 }
-getMatch("TrrrZero").then((match)=>{
+getMatch("Ryone").then((match)=>{
   console.log(match)
 })
