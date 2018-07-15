@@ -1,6 +1,6 @@
 const request = require("request");
 const fs = require("fs")
-const TempApiKey = "RGAPI-f4d015ea-2728-43b2-8a80-c69e0c8f0d93";
+const TempApiKey = "RGAPI-0fe2f7fc-d55e-4e89-ad8e-42c33babc977";
 let ex = module.exports;
 
 class Champion {
@@ -8,6 +8,14 @@ class Champion {
     this.key = key
     this.name = name
     this.image = image
+  }
+}
+class Spell {
+  constructor(key, name, image, cooldown) {
+    this.key = key
+    this.name = name
+    this.image = image
+    this.cooldown = cooldown
   }
 }
 
@@ -32,29 +40,45 @@ let getUser = ex.getUser = (userName) => {
 
 //Gets the latest championlist and saves is it ./champions.json
 //will be changed to UpdateLocalData 
-updateChampions = ex.updateChampions = () => {
 
-
+updateLocalFile = (type) => {
+  let endpoint;
+  let path;
+  if (type == "spells") {
+    endpoint = "summoners.json"
+    path = "./spells.json"
+  } else if (type == "champion") {
+    endpoint = "champions.json"
+    path = "./champions.json"
+  }
   request.get({
-    url: "http://ddragon.leagueoflegends.com/cdn/6.24.1/data/en_US/champion.json",
+    url: `http://ddragon.leagueoflegends.com/cdn/6.24.1/data/en_US/${endpoint}`,
     headers: headers
   }, (err, res) => {
-    newChampions = JSON.parse(res["body"])
+    newData = JSON.parse(res["body"])
 
-    localChamps = []
+    let localData = []
 
-    for (championName in newChampions["data"]) {
-      champion = newChampions["data"][championName]
-      localChamps.push(new Champion(champion.key, champion.name, champion.image.full))
+    if (type == "spells") {
+      for (spellName in newData["data"]) {
+        spell = newData["data"][spellName]
+        localData.push(new Spell(spell.key, spell.name, spell.image, spell.cooldown))
+      }
+    } else if (type == "champions") {
+      for (championName in newData["data"]) {
+        champion = newData["data"][championName]
+        localData.push(new Champion(champion.key, champion.name, champion.image.full))
+      }
     }
+
     //sorteren voor de binary search
-    localChamps.sort((a, b) => {
+    localData.sort((a, b) => {
       return a.key - b.key
     })
 
     //TODO: stats birthdate is x aantal dagen geleden dan update en anders return false
 
-    fs.writeFile("./champions.json", JSON.stringify(localChamps), (err) => {
+    fs.writeFile(path, JSON.stringify(localData), (err) => {
       if (err) {
         console.log(err)
       }
@@ -62,16 +86,23 @@ updateChampions = ex.updateChampions = () => {
   })
 }
 
+
 let canBeUpdated = (path) => {
-  fs.stat("./champions.json", (error, stats) => {
+  fs.stat(path, (error, stats) => {
 
   })
 }
 
 getLocalData = (type, key) => {
-  array = JSON.parse(fs.readFileSync(type = "champion" ? "./champions.json" : type = "spell" ? "./spells.json" : () => {
-    throw Error
-  }))
+  let path;
+  if (type == "champions") {
+    path = "./champions.json"
+  } else if (type = "spells") {
+    path = "./spells.json"
+  }
+  console.log(path)
+
+  array = JSON.parse(fs.readFileSync(path))
   return binarySearch(type, key, array)
 }
 
@@ -79,7 +110,6 @@ binarySearch = (type, key, array) => {
   let mid = Math.floor(array.length / 2)
   let midObject = array[mid]
   let midKey = midObject.key
-
   switch (true) {
     case midKey == key:
       return midObject;
@@ -88,7 +118,7 @@ binarySearch = (type, key, array) => {
     case key > midKey:
       return binarySearch(type, key, array.slice(mid, array.length))
     default:
-      updateChampions() //TODO: check wanneer champions.json voor het laatst geupdate is 
+      updateLocalFile(type) //TODO: check wanneer champions.json voor het laatst geupdate is 
       // al is dat minder dan een dag geleden throw error
       getLocalData(type, key)
   }
@@ -101,10 +131,7 @@ let getMatch = ex.getMatch = (userName) => {
         url: `https://euw1.api.riotgames.com/lol/spectator/v3/active-games/by-summoner/${user.id}`,
         headers: headers
       }, (err, res, body) => {
-        let match = JSON.parse(body)
-        for (p in match.participants) {
-          match = AddSummonerData(match, p)
-        };
+        let match = AddSummonerData(JSON.parse(body))
         resolve(match)
       })
     })
@@ -112,15 +139,25 @@ let getMatch = ex.getMatch = (userName) => {
 }
 
 let AddSummonerData = (match, position) => {
-  let summoner = match.participants[position]
-  match.participants[position].champion = getLocalData("champion", summoner.championId)
-  //match.participants[position].CDR = hasCDR(user.id)
-  //match.participants[position].sum1 = getLocalData("spell",summoner.spell1Id)
-  //match.participants[position].sum2 = getLocalData("spell",summoner.spell2Id)
-
+  for (position in match.participants) {
+    let summoner = match.participants[position]
+    match.participants[position].champion = getLocalData("champions", summoner.championId)
+    match.participants[position].sum1 = getLocalData("spells", summoner.spell1Id)
+    match.participants[position].sum2 = getLocalData("spells", summoner.spell2Id)
+    if(hasCDR(summoner)){
+      match.participants[position].sum1.cooldown[0] *= 0.95
+      match.participants[position].sum2.cooldown[0] *= 0.95
+    }
+  }
   return match
 }
 
-getMatch("Ryone").then((match) => {
-  console.log(match)
+let hasCDR = (user) => {
+  COSMIC_INSIGHT_ID = 8347 //the cosmic insight rune reduces the cooldown of summonerspells
+  return user.perks.perkIds.includes(COSMIC_INSIGHT_ID)
+}
+
+getMatch("zsu").then((match) => {
+  console.log(JSON.stringify(match, undefined, 2));
 })
+
